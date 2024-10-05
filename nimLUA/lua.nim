@@ -25,9 +25,6 @@ elif not defined(useLuaJIT):
   when defined(MACOSX):
     const
       LIB_NAME* = "liblua53.dylib"
-  elif defined(FREEBSD):
-    const
-      LIB_NAME* = "liblua-5.3.so"
   elif defined(UNIX):
     const
       LIB_NAME* = "liblua53.so"
@@ -38,9 +35,6 @@ else:
   when defined(MACOSX):
     const
       LIB_NAME* = "libluajit.dylib"
-  elif defined(FREEBSD):
-    const
-      LIB_NAME* = "libluajit-5.1.so"
   elif defined(UNIX):
     const
       LIB_NAME* = "libluajit.so"
@@ -78,7 +72,7 @@ const
 proc upvalueindex*(i: int): int {.inline.} = LUA_REGISTRYINDEX - i
 
 # thread status
-type TThreadStatus* {.size:sizeof(cint).}= enum
+type TThreadStatus* {.size: sizeof(cint).} = enum
   Thread_OK = 0, Thread_Yield, Thread_ErrRun, Thread_ErrSyntax,
   Thread_ErrMem, Thread_ErrGCMM, Thread_ErrErr
 
@@ -133,18 +127,13 @@ const
   LUA_RIDX_LAST* = LUA_RIDX_GLOBALS
 
 type
-  lua_Number* = float64  # type of numbers in Lua
-  lua_Integer* = int64    # ptrdiff_t \ type for integer functions
+  lua_Number* = float64 # type of numbers in Lua
+  lua_Integer* = int64 # ptrdiff_t \ type for integer functions
 
-when defined(lua_static_lib):
-  {.pragma: ilua, cdecl, importc: "lua_$1".} # lua.h
-  {.pragma: iluaLIB, cdecl, importc: "lua$1".} # lualib.h
-  {.pragma: iluaL, cdecl, importc: "luaL_$1".} # lauxlib.h
-else:
-  {.push callconv: cdecl, dynlib: LIB_NAME .} # importc: "lua_$1"  was not allowed?
-  {.pragma: ilua, importc: "lua_$1".} # lua.h
-  {.pragma: iluaLIB, importc: "lua$1".} # lualib.h
-  {.pragma: iluaL, importc: "luaL_$1".} # lauxlib.h
+{.push callconv: cdecl, dynlib: LIB_NAME.} # importc: "lua_$1"  was not allowed?
+{.pragma: ilua, importc: "lua_$1".} # lua.h
+{.pragma: iluaLIB, importc: "lua$1".} # lualib.h
+{.pragma: iluaL, importc: "luaL_$1".} # lauxlib.h
 
 proc newstate*(f: TAlloc; ud: pointer): PState {.ilua.}
 proc close*(L: PState) {.ilua.}
@@ -166,9 +155,9 @@ proc checkstack*(L: PState; sz: cint): cint {.ilua.}
 proc xmove*(src: PState; dst: PState; n: cint) {.ilua.}
 
 proc pop*(L: PState; n: cint) {.inline.} = L.settop(-n - 1)
-proc insert*(L: PState, idx: cint) {.inline.} = L.rotate(idx, 1)
-proc remove*(L: PState, idx: cint) {.inline.} = L.rotate(idx, -1); L.pop(1)
-proc replace*(L: PState, idx: cint) {.inline.} = L.copy(-1, idx); L.pop(1)
+proc insert*(L: PState; idx: cint) {.inline.} = L.rotate(idx, 1)
+proc remove*(L: PState; idx: cint) {.inline.} = L.rotate(idx, -1); L.pop(1)
+proc replace*(L: PState; idx: cint) {.inline.} = L.copy(-1, idx); L.pop(1)
 
 #
 #* access functions (stack -> C)
@@ -178,10 +167,7 @@ proc isstring*(L: PState; idx: cint): cint {.ilua.}
 proc iscfunction*(L: PState; idx: cint): cint {.ilua.}
 proc isuserdata*(L: PState; idx: cint): cint {.ilua.}
 proc isinteger*(L: PState; idx: cint): cint {.ilua.}
-when defined(lua_static_lib):
-  proc luatype*(L: PState; idx: cint): cint {.cdecl, importc: "lua_type".}
-else:
-  proc luatype*(L: PState; idx: cint): cint {.importc: "lua_type".}
+proc luatype*(L: PState; idx: cint): cint {.importc: "lua_type".}
 proc typename*(L: PState; tp: cint): cstring {.ilua.}
 proc tonumberx*(L: PState; idx: cint; isnum: ptr cint): lua_Number {.ilua.}
 proc tointegerx*(L: PState; idx: cint; isnum: ptr cint): lua_Integer {.ilua.}
@@ -197,7 +183,7 @@ proc topointer*(L: PState; idx: cint): pointer {.ilua.}
 #* Comparison and arithmetic functions
 #
 const
-  LUA_OPADD* = 0            # ORDER TM
+  LUA_OPADD* = 0 # ORDER TM
   LUA_OPSUB* = 1
   LUA_OPMUL* = 2
   LUA_OPDIV* = 3
@@ -221,8 +207,8 @@ proc pushnumber*(L: PState; n: lua_Number) {.ilua.}
 proc pushinteger*(L: PState; n: lua_Integer) {.ilua.}
 proc pushlstring*(L: PState; s: cstring; len: csize_t): cstring {.ilua.}
 proc pushstring*(L: PState; s: cstring): cstring {.ilua.}
-proc pushvfstring*(L: PState; fmt: cstring): cstring {.varargs,ilua.}
-proc pushfstring*(L: PState; fmt: cstring): cstring {.varargs,ilua.}
+proc pushvfstring*(L: PState; fmt: cstring): cstring {.varargs, ilua.}
+proc pushfstring*(L: PState; fmt: cstring): cstring {.varargs, ilua.}
 proc pushcclosure*(L: PState; fn: TCFunction; n: cint) {.ilua.}
 proc pushboolean*(L: PState; b: cint) {.ilua.}
 proc pushlightuserdata*(L: PState; p: pointer) {.ilua.}
@@ -272,7 +258,7 @@ proc dump*(L: PState; writer: TWriter; data: pointer): cint {.ilua.}
 #* coroutine functions
 #
 proc yieldk*(L: PState; nresults: cint; ctx: cint; k: TCFunction): cint {.ilua.}
-proc luayield*(L: PState, n: cint): cint {.inline.} = L.yieldk(n, 0, nil)
+proc luayield*(L: PState; n: cint): cint {.inline.} = L.yieldk(n, 0, nil)
 proc resume*(L: PState; fromL: PState; narg: cint): cint {.ilua.}
 proc status*(L: PState): cint {.ilua.}
 
@@ -311,15 +297,15 @@ proc setallocf*(L: PState; f: TAlloc; ud: pointer) {.ilua.}
 #
 proc tonumber*(L: PState; i: cint): lua_Number {.inline.} = L.tonumberx(i, nil)
 proc tointeger*(L: PState; i: cint): lua_Integer {.inline.} = L.tointegerx(i, nil)
-proc newtable*(L: PState) {.inline.} = L.createtable(0,0)
+proc newtable*(L: PState) {.inline.} = L.createtable(0, 0)
 proc pushcfunction*(L: PState; fn: TCfunction) {.inline.} = L.pushCclosure(fn, 0)
-proc register*(L: PState, n: string, f :TCFunction) {.inline.} =
+proc register*(L: PState; n: string; f: TCFunction) {.inline.} =
   L.pushcfunction(f); L.setglobal(n)
 
-proc isfunction* (L: PState; n: cint): bool {.inline.} =
+proc isfunction*(L: PState; n: cint): bool {.inline.} =
   L.luatype(n) == LUA_TFUNCTION
 
-proc istable* (L: PState; n: cint): bool {.inline.} =
+proc istable*(L: PState; n: cint): bool {.inline.} =
   L.luatype(n) == LUA_TTABLE
 
 proc islightuserdata*(L: PState; n: cint): bool {.inline.} =
@@ -331,16 +317,16 @@ proc isnil*(L: PState; n: cint): bool {.inline.} =
 proc isboolean*(L: PState; n: cint): bool {.inline.} =
   L.luatype(n) == LUA_TBOOLEAN
 
-proc isthread* (L: PState; n: cint): bool {.inline.} =
+proc isthread*(L: PState; n: cint): bool {.inline.} =
   L.luatype(n) == LUA_TTHREAD
 
-proc isnone* (L: PState; n: cint): bool {.inline.} =
+proc isnone*(L: PState; n: cint): bool {.inline.} =
   L.luatype(n) == LUA_TNONE
 
 proc isnoneornil*(L: PState; n: cint): bool {.inline.} =
   L.luatype(n) <= 0
 
-proc pushliteral*(L: PState, s: string): cstring {.inline, discardable.} =
+proc pushliteral*(L: PState; s: string): cstring {.inline, discardable.} =
   L.pushlstring(s, s.len.csize_t)
 
 proc pushglobaltable*(L: PState) {.inline.} =
@@ -355,7 +341,7 @@ proc tostring*(L: PState; index: cint): string =
 proc tobool*(L: PState; index: cint): bool =
   result = if L.toboolean(index) == 1: true else: false
 
-proc gettype*(L: PState, index: int): LUA_TYPE =
+proc gettype*(L: PState; index: int): LUA_TYPE =
   result = LUA_TYPE(L.luatype(index.cint))
 
 #
@@ -372,21 +358,21 @@ const
   LUA_HOOKLINE* = 2
   LUA_HOOKCOUNT* = 3
   LUA_HOOKTAILCALL* = 4
-#
-#* Event masks
-#
+ #
+ #* Event masks
+ #
 const
   LUA_MASKCALL* = (1 shl LUA_HOOKCALL)
   LUA_MASKRET* = (1 shl LUA_HOOKRET)
   LUA_MASKLINE* = (1 shl LUA_HOOKLINE)
   LUA_MASKCOUNT* = (1 shl LUA_HOOKCOUNT)
-# activation record
+ # activation record
 
 
-#@@ LUA_IDSIZE gives the maximum size for the description of the source
-#@* of a function in debug information.
-#* CHANGE it if you want a different size.
-#
+ #@@ LUA_IDSIZE gives the maximum size for the description of the source
+ #@* of a function in debug information.
+ #* CHANGE it if you want a different size.
+ #
 const
   LUA_IDSIZE* = 60
 
@@ -395,19 +381,19 @@ type
   PDebug* = ptr lua.TDebug
   TDebug* {.pure, final.} = object
     event*: cint
-    name*: cstring        # (n)
-    namewhat*: cstring    # (n) 'global', 'local', 'field', 'method'
-    what*: cstring        # (S) 'Lua', 'C', 'main', 'tail'
-    source*: cstring      # (S)
-    currentline*: cint    # (l)
-    linedefined*: cint    # (S)
-    lastlinedefined*: cint # (S)
-    nups*: cuchar         # (u) number of upvalues
-    nparams*: cuchar      # (u) number of parameters
-    isvararg*: char       # (u)
-    istailcall*: char     # (t)
+    name*: cstring                      # (n)
+    namewhat*: cstring                  # (n) 'global', 'local', 'field', 'method'
+    what*: cstring                      # (S) 'Lua', 'C', 'main', 'tail'
+    source*: cstring                    # (S)
+    currentline*: cint                  # (l)
+    linedefined*: cint                  # (S)
+    lastlinedefined*: cint              # (S)
+    nups*: cuchar                       # (u) number of upvalues
+    nparams*: cuchar                    # (u) number of parameters
+    isvararg*: char                     # (u)
+    istailcall*: char                   # (t)
     short_src*: array[LUA_IDSIZE, char] # (S) \ # private part
-    i_ci: pointer#ptr CallInfo   # active function
+    i_ci: pointer                       #ptr CallInfo   # active function
 
 
 type
@@ -545,9 +531,9 @@ proc execresult*(L: PState; stat: cint): cint {.iluaL.}
 
 # pre-defined references
 const
-  LUA_NOREF* = (- 2)
-  LUA_REFNIL* = (- 1)
-proc luaref*(L: PState; t: cint): cint {.iluaL, importc:"luaL_ref".}
+  LUA_NOREF* = ( - 2)
+  LUA_REFNIL* = ( - 1)
+proc luaref*(L: PState; t: cint): cint {.iluaL, importc: "luaL_ref".}
 proc unref*(L: PState; t: cint; iref: cint) {.iluaL.}
 proc loadfilex*(L: PState; filename: cstring; mode: cstring): cint {.iluaL.}
 proc loadfile*(L: PState; filename: cstring): cint = L.loadfilex(filename, nil)
@@ -555,7 +541,7 @@ proc loadfile*(L: PState; filename: cstring): cint = L.loadfilex(filename, nil)
 proc loadbufferx*(L: PState; buff: cstring; sz: csize_t; name, mode: cstring): cint {.iluaL.}
 proc loadstring*(L: PState; s: cstring): cint {.iluaL.}
 proc newstate*(): PState {.iluaL.}
-proc llen*(L: PState; idx: cint): cint {.iluaL, importc:"luaL_len".}
+proc llen*(L: PState; idx: cint): cint {.iluaL, importc: "luaL_len".}
 proc gsub*(L: PState; s: cstring; p: cstring; r: cstring): cstring {.iluaL.}
 proc setfuncs*(L: PState; L2: ptr luaL_Reg; nup: cint) {.iluaL.}
 proc getsubtable*(L: PState; idx: cint; fname: cstring): cint {.iluaL.}
@@ -567,44 +553,46 @@ proc requiref*(L: PState; modname: cstring; openf: TCFunction; glb: cint) {.ilua
 #* ===============================================================
 #
 
-proc newlibtable*(L: PState, arr: openArray[luaL_Reg]){.inline.} =
+proc newlibtable*(L: PState; arr: openArray[luaL_Reg]){.inline.} =
   createtable(L, 0, (arr.len - 1).cint)
 
-proc newlib*(L: PState, arr: var openArray[luaL_Reg]) {.inline.} =
+proc newlib*(L: PState; arr: var openArray[luaL_Reg]) {.inline.} =
   newlibtable(L, arr)
   setfuncs(L, cast[ptr luaL_reg](addr(arr)), 0)
 
-proc argcheck*(L: PState, cond: bool, numarg: int, extramsg: string) {.inline.} =
+proc argcheck*(L: PState; cond: bool; numarg: int; extramsg: string) {.inline.} =
   if not cond: discard L.argerror(numarg.cint, extramsg)
 
-proc checkstring*(L: PState, n: int): cstring {.inline.} = L.checklstring(n.cint, nil)
-proc optstring*(L: PState, n: int, d: string): cstring {.inline.} = L.optlstring(n.cint, d, nil)
+proc checkstring*(L: PState; n: int): cstring {.inline.} = L.checklstring(n.cint, nil)
+proc optstring*(L: PState; n: int; d: string): cstring {.inline.} = L.optlstring(n.cint, d, nil)
 
-proc checkint*(L: PState, n: lua_Integer): lua_Integer {.inline.} = L.checkinteger(n.cint)
-proc optint*(L: PState, n, d: lua_Integer): lua_Integer {.inline.} = L.optinteger(n.cint, d)
-proc checklong*(L: PState, n: int, d: clong): clong {.inline.} = cast[clong](L.checkinteger(n.cint))
-proc optlong*(L: PState, n: int, d: lua_Integer): clong = cast[clong](L.optinteger(n.cint, d))
+proc checkint*(L: PState; n: lua_Integer): lua_Integer {.inline.} = L.checkinteger(n.cint)
+proc optint*(L: PState; n, d: lua_Integer): lua_Integer {.inline.} = L.optinteger(n.cint, d)
+proc checklong*(L: PState; n: int; d: clong): clong {.inline.} = cast[clong](L.checkinteger(n.cint))
+proc optlong*(L: PState; n: int; d: lua_Integer): clong = cast[clong](L.optinteger(n.cint, d))
 
-proc Ltypename*(L: PState, i: cint): cstring {.inline.} =
+proc Ltypename*(L: PState; i: cint): cstring {.inline.} =
   L.typename(L.luatype(i))
 
-proc dofile*(L: PState, file: string): cint {.inline, discardable.} =
-  result = L.loadfile(file)
-  if result == LUA_OK:
+proc dofile*(L: PState; file: string): cint {.inline, discardable.} =
+  if L.loadfile(file) == 0:
     result = L.pcall(0, LUA_MULTRET, 0)
+  else:
+    result = 1
 
-proc dostring*(L: PState, s: string): cint {.inline, discardable.} =
-  result = L.loadstring(s)
-  if result == LUA_OK:
+proc dostring*(L: PState; s: string): cint {.inline, discardable.} =
+  if L.loadstring(s) == 0:
     result = L.pcall(0, LUA_MULTRET, 0)
+  else:
+    result = 1
 
-proc getmetatable*(L: PState, s: string) {.inline.} =
+proc getmetatable*(L: PState; s: string) {.inline.} =
   L.getfield(LUA_REGISTRYINDEX, s)
 
-template opt*(L: PState, f: TCFunction, n, d: typed) =
+template opt*(L: PState; f: TCFunction; n, d: typed) =
   if L.isnoneornil(n): d else: L.f(n)
 
-proc loadbuffer*(L: PState, buff: string, name: string): cint =
+proc loadbuffer*(L: PState; buff: string; name: string): cint =
   L.loadbufferx(buff, buff.len.csize_t, name, nil)
 
 #
@@ -614,17 +602,17 @@ proc loadbuffer*(L: PState, buff: string, name: string): cint =
 const
   Lua_BufferSIZE* = 8192'i32 # BUFSIZ\
     ## COULD NOT FIND BUFSIZE ?? on my machine this is 8192
-#
-#* {======================================================
-#* Generic Buffer manipulation
-#* =======================================================
-#
+      #
+      #* {======================================================
+      #* Generic Buffer manipulation
+      #* =======================================================
+      #
 type
   PBuffer* = ptr TBuffer
   TBuffer* {.pure, final.} = object
-    b*: cstring             # buffer address
-    size*: csize_t           # buffer size
-    n*: csize_t              # number of characters in buffer
+    b*: cstring                         # buffer address
+    size*: csize_t                      # buffer size
+    n*: csize_t                         # number of characters in buffer
     L*: PState
     initb*: array[Lua_BufferSIZE, char] # initial buffer
 
@@ -636,12 +624,12 @@ proc addvalue*(B: PBuffer) {.iluaL.}
 proc pushresult*(B: PBuffer) {.iluaL.}
 proc pushresultsize*(B: PBuffer; sz: csize_t) {.iluaL.}
 proc buffinitsize*(L: PState; B: PBuffer; sz: csize_t): cstring {.iluaL.}
-proc addchar*(B: PBuffer, c: char) =
+proc addchar*(B: PBuffer; c: char) =
   if B.n < B.size: discard B.prepbuffsize(1)
   B.b[B.n] = c
   inc B.n
 
-proc addsize*(B: PBuffer, s: int) {.inline.} = inc(B.n, s)
+proc addsize*(B: PBuffer; s: int) {.inline.} = inc(B.n, s)
 proc prepbuffer*(B: PBuffer): cstring {.inline.} = prepbuffsize(B, Lua_BufferSIZE.csize_t)
 
 # }======================================================
@@ -660,14 +648,14 @@ const
 type
   luaL_Stream* {.pure, final.} = object
     f*: File            # stream (NULL for incompletely created streams)
-    closef*: TCFunction  # to close stream (NULL for closed streams)
+    closef*: TCFunction # to close stream (NULL for closed streams)
 
 # }======================================================
 # compatibility with old module system
 when defined(LUA_COMPAT_MODULE):
   proc pushmodule*(L: PState; modname: cstring; sizehint: cint){.iluaL.}
   proc openlib*(L: PState; libname: cstring; ls: ptr luaL_Reg; nup: cint){.iluaL.}
-  proc register*(L: PState, n: string, ls: var openArray[luaL_Reg]) {.inline.} =
+  proc register*(L: PState; n: string; ls: var openArray[luaL_Reg]) {.inline.} =
     L.openlib(n, cast[ptr luaL_reg](addr(ls)), 0)
 
 when isMainModule:
